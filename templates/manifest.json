@@ -1,0 +1,13 @@
+{
+  "name": "飞行雪绒应援栈",
+  "short_name": "飞行雪绒",
+  "description": "手机远程查看 Claude Code 会话",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d0f",
+  "theme_color": "#f97316",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

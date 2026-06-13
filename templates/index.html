@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#f97316">
+<link rel="manifest" href="/manifest.json">
+<title>飞行雪绒</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d0d0f;color:#e4e4e7;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
+/* ── 爱弥斯 CSS 像素画 ── */
+.aemeath{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 0 8px}
+.aemeath-grid{display:grid;grid-template-columns:repeat(16,3px);grid-template-rows:repeat(16,3px);image-rendering:pixelated;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.pa-b0{background:#f97316;border-radius:0.5px} /* 橙色身体 */
+.pa-b1{background:#ea580c} /* 深橙 */
+.pa-b2{background:#fb923c} /* 浅橙 */
+.pa-e0{background:#1a1a2e} /* 眼睛黑色 */
+.pa-e1{background:#fff;border-radius:50%} /* 眼睛高光 */
+.pa-m0{background:#fff;border-radius:50%;opacity:0.8} /* 嘴巴/触须亮点 */
+.pa-s0{background:#c2410c} /* 暗影 */
+.pa-glow{width:80px;height:16px;background:radial-gradient(ellipse,#f9731640,#f9731600 70%);border-radius:50%;margin-top:-8px;animation:glowPulse 3s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{opacity:0.5;transform:scaleX(1)}50%{opacity:1;transform:scaleX(1.15)}}
+/* ── 连接状态 ── */
+.status-bar{display:flex;align-items:center;justify-content:center;gap:8px;padding:4px 16px 12px;font-size:13px;color:#a1a1aa}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;transition:background 0.3s}
+.status-dot.disconnected{background:#ef4444}
+/* ── 通知权限条 ── */
+.notif-banner{position:fixed;bottom:0;left:0;right:0;background:#27272a;padding:12px 16px;display:flex;align-items:center;gap:12px;z-index:100;border-top:1px solid #3f3f46;animation:slideUp 0.3s}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.notif-banner button{background:#f97316;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-size:13px;white-space:nowrap}
+.notif-banner .close{background:none;border:none;color:#a1a1aa;font-size:18px;padding:4px;margin-left:auto}
+/* ── 视图 ── */
+.view{display:none;padding:0 12px 80px}
+.view.active{display:block}
+.proj-item,.sess-item{background:#18181b;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:background 0.15s}
+.proj-item:active,.sess-item:active{background:#27272a}
+.proj-item h3{font-size:15px;margin-bottom:2px}
+.proj-item .meta{font-size:12px;color:#a1a1aa}
+.sess-item{display:flex;justify-content:space-between;align-items:center}
+.sess-item .id{font-size:13px;font-family:monospace;word-break:break-all;max-width:70%}
+.sess-item .info{font-size:11px;color:#a1a1aa;text-align:right}
+/* ── 消息 ── */
+.msg{padding:10px 12px;margin-bottom:6px;border-radius:8px;font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word}
+.msg-user{background:#1e1e24;border-left:3px solid #f97316}
+.msg-assistant{background:#18181b;border-left:3px solid #22c55e}
+.msg-role{font-size:11px;color:#a1a1aa;margin-bottom:4px;font-weight:600}
+.msg-content p{margin-bottom:6px}
+.msg-content p:last-child{margin-bottom:0}
+.msg-content pre{background:#0d0d0f;border-radius:6px;padding:8px 10px;overflow-x:auto;font-size:12px;margin:6px 0;border:1px solid #27272a}
+.msg-content code{font-size:12px;background:#27272a;padding:1px 4px;border-radius:3px}
+.msg-content pre code{background:none;padding:0}
+.tool-block{border-left:3px solid #f97316;padding:6px 10px;margin:4px 0;background:#1a1a1e;border-radius:0 6px 6px 0;font-size:12px}
+.tool-name{color:#fb923c;font-weight:600}
+.tool-input{color:#a1a1aa;font-family:monospace;font-size:11px;margin-top:2px}
+.thinking-spinner{display:inline-flex;align-items:center;gap:6px;color:#a1a1aa;font-size:13px;padding:4px 0}
+.thinking-spinner::before{content:'';width:14px;height:14px;border:2px solid #3f3f46;border-top-color:#f97316;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── 导航 ── */
+.nav-bar{position:fixed;top:0;left:0;right:0;z-index:50;background:#0d0d0fe0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #27272a}
+.nav-back{background:none;border:none;color:#f97316;font-size:20px;padding:4px;cursor:pointer;line-height:1}
+.nav-title{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── 图片 ── */
+.msg-img{max-width:100%;border-radius:6px;margin:4px 0;cursor:zoom-in}
+.img-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.img-overlay img{max-width:95%;max-height:95%;border-radius:4px}
+.page{width:100%;min-height:100vh;max-width:600px;margin:0 auto}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="nav-bar"><button class="nav-back" id="backBtn" style="display:none">&#x2190;</button><span class="nav-title" id="navTitle">飞行雪绒</span></div>
+
+<div style="padding-top:44px">
+  <!-- 爱弥斯像素画 -->
+  <div class="aemeath">
+    <div class="aemeath-grid" id="aemeathPixel"></div>
+    <div class="aemeath-glow"></div>
+  </div>
+
+  <!-- 连接状态 -->
+  <div class="status-bar">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">连接中...</span>
+  </div>
+
+  <!-- 项目列表 -->
+  <div class="view active" id="viewProjects"></div>
+
+  <!-- 会话列表 -->
+  <div class="view" id="viewSessions"></div>
+
+  <!-- 消息视图 -->
+  <div class="view" id="viewMessages"></div>
+</div>
+</div>
+
+<!-- 通知权限条 -->
+<div class="notif-banner" id="notifBanner" style="display:none">
+  <span style="font-size:14px;flex:1">新消息通知</span>
+  <button id="notifAllowBtn">允许通知</button>
+  <button class="close" id="notifCloseBtn">&times;</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// 爱弥斯 CSS 像素画生成
+// ═══════════════════════════════════════════════════════
+const PIXEL_MAP = [
+  "................",
+  "..bbbbbbbbbb....",
+  ".b0b0b0b0b0b0...",
+  "b0b1b1b1b1b1b0..",
+  "b0b1e0e1e0b1b0..",
+  "b0b1e1b0e1b1b0..",
+  "b0b1b1b1b1b1b0..",
+  ".b0b2b2b2b2b0...",
+  "..b0b0b0b0b0....",
+  "...b0m0m0b0.....",
+  "...b0b0b0b0.....",
+  "..b0b0b0b0b0....",
+  ".b0s0b0b0s0b0...",
+  "b0b0s0b0s0b0b0..",
+  "................",
+  "................"
+];
+const CLASS_MAP = {b:'pa-b0',B:'pa-b1',c:'pa-b2',e:'pa-e0',E:'pa-e1',m:'pa-m0',s:'pa-s0'};
+function buildAemeath() {
+  const grid = document.getElementById('aemeathPixel');
+  grid.innerHTML = '';
+  for (const row of PIXEL_MAP) {
+    for (const ch of row) {
+      const div = document.createElement('div');
+      const cls = CLASS_MAP[ch];
+      if (cls) div.className = cls;
+      grid.appendChild(div);
+    }
+  }
+}
+buildAemeath();
+
+// ═══════════════════════════════════════════════════════
+// 状态
+// ═══════════════════════════════════════════════════════
+let currentView = 'projects';
+let projects = [];
+let sessions = [];
+let messages = [];
+let currentProject = '';
+let currentSession = '';
+let unreadCount = 0;
+
+// ═══════════════════════════════════════════════════════
+// 通知
+// ═══════════════════════════════════════════════════════
+function showNotifBanner() {
+  document.getElementById('notifBanner').style.display = 'flex';
+}
+document.getElementById('notifAllowBtn').onclick = () => {
+  Notification.requestPermission().then(perm => {
+    if (perm === 'granted') {
+      document.getElementById('notifBanner').style.display = 'none';
+      new Notification('飞行雪绒', { body: '通知已开启 ✓', icon: '/icon.png' });
+    }
+  });
+};
+document.getElementById('notifCloseBtn').onclick = () => {
+  document.getElementById('notifBanner').style.display = 'none';
+};
+if ('Notification' in window && Notification.permission === 'default') {
+  setTimeout(showNotifBanner, 3000);
+}
+function sendNotif(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!document.hidden) return;
+  new Notification(title, { body, icon: '/icon.png', tag: 'fleet-snowfluff' });
+}
+
+// ═══════════════════════════════════════════════════════
+// 视图切换
+// ═══════════════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  document.getElementById('backBtn').style.display = (name !== 'projects') ? 'block' : 'none';
+  currentView = name;
+}
+document.getElementById('backBtn').onclick = () => {
+  if (currentView === 'sessions') showView('projects');
+  else if (currentView === 'messages') showView('sessions');
+};
+
+// ═══════════════════════════════════════════════════════
+// 加载项目
+// ═══════════════════════════════════════════════════════
+async function loadProjects() {
+  try {
+    const r = await fetch('/api/projects');
+    projects = await r.json();
+    const el = document.getElementById('viewProjects');
+    el.innerHTML = projects.map(p => `
+      <div class="proj-item" data-project="${p.name}">
+        <h3>${p.name}</h3>
+        <div class="meta">${p.sessions} 个会话</div>
+      </div>
+    `).join('');
+    el.querySelectorAll('.proj-item').forEach(item => {
+      item.onclick = () => { currentProject = item.dataset.project; loadSessions(); };
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function loadSessions() {
+  try {
+    const r = await fetch('/api/sessions/' + encodeURIComponent(currentProject));
+    sessions = await r.json();
+    document.getElementById('navTitle').textContent = currentProject;
+    const el = document.getElementById('viewSessions');
+    el.innerHTML = sessions.map(s => {
+      const date = new Date(s.mtime * 1000);
+      return `<div class="sess-item" data-session="${s.id}">
+        <div class="id">${s.id.slice(0,20)}...</div>
+        <div class="info">${s.messages}<br>${date.toLocaleDateString()}</div>
+      </div>`;
+    }).join('');
+    el.querySelectorAll('.sess-item').forEach(item => {
+      item.onclick = () => { currentSession = item.dataset.session; loadMessages(); };
+    });
+    showView('sessions');
+  } catch(e) { console.error(e); }
+}
+
+async function loadMessages() {
+  try {
+    const r = await fetch(`/api/messages/${encodeURIComponent(currentProject)}/${currentSession}`);
+    messages = await r.json();
+    document.getElementById('navTitle').textContent = currentSession.slice(0,16) + '...';
+    renderMessages();
+    showView('messages');
+  } catch(e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════════════════
+// 消息渲染
+// ═══════════════════════════════════════════════════════
+function renderMessages() {
+  const el = document.getElementById('viewMessages');
+  el.innerHTML = messages.map(m => {
+    const role = m.role || 'unknown';
+    const content = m.content;
+    return `<div class="msg msg-${role}">
+      <div class="msg-role">${role === 'user' ? '🧑 你' : '🤖 Claude'}</div>
+      <div class="msg-content">${parseContent(content)}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function parseContent(content) {
+  if (!content) return '<span style="color:#a1a1aa;font-style:italic">(空)</span>';
+  if (typeof content === 'string') return fmtText(content);
+  if (Array.isArray(content)) {
+    return content.map(b => renderBlock(b)).join('');
+  }
+  return fmtText(String(content));
+}
+
+function renderBlock(block) {
+  if (!block || !block.type) return '';
+  switch (block.type) {
+    case 'text':
+      return fmtText(block.text);
+    case 'image':
+      if (block.source && block.source.data) {
+        return `<img class="msg-img" src="data:${block.source.media_type||'image/png'};base64,${block.source.data}" onclick="zoomImg(this)" loading="lazy">`;
+      }
+      return '<span style="color:#a1a1aa;font-style:italic">[图片]</span>';
+    case 'tool_use':
+      return `<div class="tool-block"><span class="tool-name">🛠 ${block.name}</span><div class="tool-input">${JSON.stringify(block.input||{}).slice(0,200)}</div></div>`;
+    case 'tool_result':
+      const txt = typeof block.content === 'string' ? block.content
+        : Array.isArray(block.content) ? block.content.map(b => b.text||'').join('') : '';
+      const isErr = block.is_error;
+      return `<div class="tool-block" style="border-left-color:${isErr?'#ef4444':'#22c55e'}"><span class="tool-name">${isErr?'❌':'✅'} 结果</span><div class="tool-input">${fmtText(txt.slice(0,500))}${txt.length>500?'...':''}</div></div>`;
+    case 'thinking':
+      return '<div class="thinking-spinner">思考中...</div>';
+    default:
+      return '';
+  }
+}
+
+function fmtText(text) {
+  if (!text) return '';
+  // Escape HTML
+  let s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Code blocks
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Line breaks
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
+function zoomImg(img) {
+  const ov = document.createElement('div');
+  ov.className = 'img-overlay';
+  ov.onclick = () => ov.remove();
+  const clone = img.cloneNode(true);
+  clone.style.maxWidth = '95%';
+  clone.style.maxHeight = '95%';
+  ov.appendChild(clone);
+  document.body.appendChild(ov);
+}
+
+// ═══════════════════════════════════════════════════════
+// SSE 连接
+// ═══════════════════════════════════════════════════════
+function connectSSE() {
+  const es = new EventSource('/api/stream');
+  es.onopen = () => {
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').textContent = '已连接';
+  };
+  es.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.type === 'messages' && currentView !== 'messages') {
+        unreadCount++;
+        updateTitle();
+        sendNotif('飞行雪绒', `${d.project} 有新消息`);
+      }
+      if (d.type === 'messages' && d.project === currentProject) {
+        loadProjects();
+      }
+    } catch(_) {}
+  };
+  es.onerror = () => {
+    document.getElementById('statusDot').className = 'status-dot disconnected';
+    document.getElementById('statusText').textContent = '未连接';
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+function updateTitle() {
+  document.title = unreadCount > 0 ? `(${unreadCount}) 飞行雪绒` : '飞行雪绒';
+}
+
+// ═══════════════════════════════════════════════════════
+// 页面可见性 — 后台时更新标题
+// ═══════════════════════════════════════════════════════
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    unreadCount = 0;
+    updateTitle();
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// 启动
+// ═══════════════════════════════════════════════════════
+loadProjects();
+connectSSE();
+</script>
+</body>
+</html>
